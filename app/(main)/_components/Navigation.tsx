@@ -1,23 +1,30 @@
-"use client";
-import { useEffect, useRef, useState } from "react";
+import { ElementRef, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ChevronsLeft, MenuIcon, PlusCircle } from "lucide-react";
-// import UserItem from "./UserItem";
-import { useQuery } from "convex/react";
+import {
+  ChevronsLeft,
+  MenuIcon,
+  PlusCircle,
+  Search,
+  Settings,
+} from "lucide-react";
+import { UserItem } from "./UserItem";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-// import { Item } from "./Item";
+import { Item } from "./Item";
+import { toast } from "sonner";
 
 const Navigation = () => {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const isResizingRef = useRef(false);
-  const sidebarRef = useRef(null);
-  const navbarRef = useRef(null);
+  const sidebarRef = useRef<ElementRef<"aside">>(null);
+  const navbarRef = useRef<ElementRef<"div">>(null);
   const [isResetting, setIsResetting] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(isMobile);
   const documents = useQuery(api.documents.get);
+  const create = useMutation(api.documents.create);
 
   useEffect(() => {
     if (isMobile) {
@@ -34,7 +41,10 @@ const Navigation = () => {
     }
   }, [pathname, isMobile]);
 
-  const handleMouseDown = (event) => {
+  const handleMouseDown = (event: {
+    preventDefault: () => void;
+    stopPropagation: () => void;
+  }) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -43,7 +53,7 @@ const Navigation = () => {
     document.addEventListener("mouseup", handleMouseUp);
   };
 
-  const handleMouseMove = (event) => {
+  const handleMouseMove = (event: { clientX: any }) => {
     if (!isResizingRef.current) return;
     let newWidth = event.clientX;
 
@@ -93,12 +103,22 @@ const Navigation = () => {
     }
   };
 
+  const handleCreate = () => {
+    const promise = create({ title: "Untitled" });
+
+    toast.promise(promise, {
+      loading: "Creating a new note...",
+      success: "New note created",
+      error: "Failed to create a new note",
+    });
+  };
+
   return (
     <>
       <aside
         ref={sidebarRef}
         className={cn(
-          "group/sidebar h-full bg-gray-400 overflow-y-auto relative flex w-60 flex-col z-[99999]",
+          "group/sidebar h-full bg-gray-200 overflow-y-auto relative flex w-60 flex-col z-[99999]",
           isResetting && "transition-all ease-in-out duration-300",
           isMobile && "w-0"
         )}
@@ -114,8 +134,10 @@ const Navigation = () => {
           <ChevronsLeft className="h-6 w-6" />
         </div>
         <div>
-          {/* <UserItem /> */}
-          {/* <Item onClick={() => {}} label="New Page" icon={PlusCircle} /> */}
+          <UserItem />
+          <Item label="Search" icon={Search} isSearch onClick={() => {}} />
+          <Item label="Settings" icon={Settings} />
+          <Item onClick={handleCreate} label="New Page" icon={PlusCircle} />
         </div>
         <div className="mt-4">
           {documents?.map((document) => (
